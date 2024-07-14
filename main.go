@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -45,6 +46,7 @@ func (rb *RingBuffer) Run(done <-chan bool, interval time.Duration) {
 	for {
 		select {
 		case data := <-rb.inputChannel:
+			log.Printf("Received input date: %d", data)
 			rb.buffer[end] = data
 			end = (end + 1) % rb.size
 			if end == start {
@@ -52,11 +54,13 @@ func (rb *RingBuffer) Run(done <-chan bool, interval time.Duration) {
 			}
 		case <-ticker.C:
 			if start != end {
+				log.Printf("Sending output data: %d", rb.buffer[start])
 				rb.outputChannel <- rb.buffer[start]
 				start = (start + 1) % rb.size
 			}
 		case <-done:
 			close(rb.outputChannel)
+			log.Println("Buffer processing stopped")
 			return
 		}
 	}
@@ -94,11 +98,13 @@ func NegFilter(previousStageChan <-chan int, nextStageChan chan<- int, done chan
 	for {
 		select {
 		case data := <-previousStageChan:
+			log.Printf("NegFilter recieved data: %d", data)
 			if data > 0 {
 				nextStageChan <- data
 			}
 		case <-done:
 			close(nextStageChan)
+			log.Println("NegFilter stopped")
 			return
 		}
 	}
@@ -110,11 +116,13 @@ func FilterThreeDiv(previousStageChan <-chan int, nextStageChan chan<- int, done
 	for {
 		select {
 		case data := <-previousStageChan:
+			log.Printf("FilterThreeDiv received data: %d", data)
 			if data != 0 && data%3 == 0 {
 				nextStageChan <- data
 			}
 		case <-done:
 			close(nextStageChan)
+			log.Println("FilterThreeDiv stopped")
 			return
 		}
 	}
